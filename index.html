@@ -102,6 +102,15 @@
         font-size: 0.8em;
         color: #aaa;
       }
+      #debug-area {
+        margin-top: 20px;
+        padding: 10px;
+        background: #eee;
+        font-family: monospace;
+        font-size: 12px;
+        display: none;
+        color: red;
+      }
     </style>
   </head>
   <body>
@@ -187,6 +196,9 @@
         <h2 id="prediction-title" style="margin: 0"></h2>
         <div id="prediction-detail" class="confidence"></div>
       </div>
+
+      <!-- Debug Area -->
+      <div id="debug-area"></div>
     </div>
 
     <div class="footer">
@@ -195,118 +207,161 @@
 
     <script>
       let modelData = null;
+      const debugArea = document.getElementById("debug-area");
+
+      function logDebug(msg) {
+        console.log(msg);
+        debugArea.style.display = "block";
+        debugArea.innerHTML += msg + "<br>";
+      }
 
       // 1. Load Model JSON secara otomatis saat halaman dibuka
       fetch("concrete_model.json")
-        .then((response) => response.json())
+        .then((response) => {
+          if (!response.ok)
+            throw new Error("Gagal mengambil file concrete_model.json");
+          return response.json();
+        })
         .then((data) => {
           modelData = data;
-          console.log("Model berhasil dimuat:", modelData.architecture);
+          logDebug("✅ Model berhasil dimuat!");
+          logDebug("Jumlah Fitur di JSON: " + modelData.scaler_mean.length);
+
+          // Cek apakah key memiliki spasi di akhir (masalah umum dari Python dict)
+          // Kita normalisasi akses jika perlu, tapi biasanya JSON.dump bersih.
         })
-        .catch((error) => console.error("Gagal memuat model:", error));
+        .catch((error) => {
+          logDebug("❌ ERROR: " + error.message);
+          alert(
+            "Gagal memuat concrete_model.json. Pastikan file ada di folder yang sama dengan index.html.",
+          );
+        });
 
       // Fungsi Matematika ANN
       function relu(z) {
         return z.map((val) => Math.max(0, val));
       }
+
       function softmax(z) {
         const maxVal = Math.max(...z);
         const exps = z.map((val) => Math.exp(val - maxVal));
         const sumExps = exps.reduce((a, b) => a + b, 0);
         return exps.map((val) => val / sumExps);
       }
+
       function dotProduct(matrix, vector) {
         return matrix.map((row) =>
           row.reduce((sum, val, i) => sum + val * vector[i], 0),
         );
       }
+
       function addVector(v1, v2) {
         return v1.map((val, i) => val + v2[i]);
       }
 
       function predictConcrete() {
         if (!modelData) {
-          alert("Model belum siap, tunggu sebentar...");
+          alert("Model belum siap. Cek Console/Debug Area di bawah form.");
           return;
         }
 
-        // Ambil nilai dari input, ganti koma dengan titik, lalu konversi ke float
-        const inputs = [
-          parseFloat(
-            document.getElementById("cement").value.replace(",", "."),
-          ) || 0,
-          parseFloat(document.getElementById("slag").value.replace(",", ".")) ||
-            0,
-          parseFloat(
-            document.getElementById("flyash").value.replace(",", "."),
-          ) || 0,
-          parseFloat(
-            document.getElementById("water").value.replace(",", "."),
-          ) || 0,
-          parseFloat(
-            document.getElementById("superplasticizer").value.replace(",", "."),
-          ) || 0,
-          parseFloat(
-            document.getElementById("coarse").value.replace(",", "."),
-          ) || 0,
-          parseFloat(document.getElementById("fine").value.replace(",", ".")) ||
-            0,
-          parseFloat(document.getElementById("age").value.replace(",", ".")) ||
-            0,
-        ];
+        try {
+          // 2. Ambil Input & Bersihkan Koma (jika user pakai koma desimal)
+          const getVal = (id) => {
+            let val = document.getElementById(id).value.replace(",", ".");
+            return parseFloat(val) || 0;
+          };
 
-        // Cek apakah ada NaN setelah konversi
-        if (inputs.some(isNaN)) {
-          alert(
-            "Mohon pastikan semua input berisi angka yang valid (gunakan titik '.' untuk desimal).",
+          // URUTAN INI HARUS SAMA PERSIS DENGAN URUTAN DI DATASET CONCRETE ANDA
+          const inputs = [
+            getVal("cement"), // 0
+            getVal("slag"), // 1
+            getVal("flyash"), // 2
+            getVal("water"), // 3
+            getVal("superplasticizer"), // 4
+            getVal("coarse"), // 5
+            getVal("fine"), // 6
+            getVal("age"), // 7
+          ];
+
+          logDebug("Input Raw: " + inputs.join(", "));
+
+          // 3. Normalisasi Input (Standard Scaler)
+          const mean = modelData.scaler_mean;
+          const std = modelData.scaler_std;
+
+          if (!mean || !std)
+            throw new Error("Scaler data tidak ditemukan di JSON");
+
+          const scaledInputs = inputs.map((val, i) => {
+            return (val - mean[i]) / std[i];
+          });
+
+          logDebug(
+            "Scaled Inputs: " +
+              scaledInputs.map((n) => n.toFixed(4)).join(", "),
           );
-          return;
+
+          // 4. Forward Pass
+          // Layer 1: Input (8) -> Hidden 1 (16)
+          let z1 = addVector(
+            dotProduct(modelData.W1, scaledInputs),
+            modelData.b1,
+          );
+          let a1 = relu(z1);
+
+          // Layer 2: Hidden 1 (16) -> Hidden 2 (8)
+          let z2 = addVector(dotProduct(modelData.W2, a1), modelData.b2);
+          let a2 = relu(z2);
+
+          // Output Layer: Hidden 2 (8) -> Output (3)
+          let z3 = addVector(dotProduct(modelData.W3, a2), modelData.b3);
+          let probabilities = softmax(z3);
+
+          logDebug(
+            "Probabilities: " +
+              probabilities.map((p) => (p * 100).toFixed(2) + "%").join(", "),
+          );
+
+          // 5. Tentukan Kelas
+          const classes = [
+            "Low Strength (<30 MPa)",
+            "Medium Strength (30-50 MPa)",
+            "High Strength (>50 MPa)",
+          ];
+          const maxProb = Math.max(...probabilities);
+          const predictedIndex = probabilities.indexOf(maxProb);
+
+          // Cek jika maxProb adalah NaN
+          if (isNaN(maxProb))
+            throw new Error("Hasil probabilitas NaN. Cek bobot/model.");
+
+          const predictedClass = classes[predictedIndex];
+
+          // 6. Tampilkan Hasil
+          const resultBox = document.getElementById("result");
+          const title = document.getElementById("prediction-title");
+          const detail = document.getElementById("prediction-detail");
+
+          resultBox.style.display = "block";
+          resultBox.className = "result-box";
+
+          if (predictedIndex === 0) resultBox.classList.add("result-low");
+          else if (predictedIndex === 1)
+            resultBox.classList.add("result-medium");
+          else resultBox.classList.add("result-high");
+
+          title.innerText = predictedClass;
+          detail.innerText = `Tingkat Keyakinan: ${(maxProb * 100).toFixed(2)}%`;
+
+          logDebug("✅ Prediksi Berhasil: " + predictedClass);
+        } catch (err) {
+          console.error(err);
+          logDebug("❌ ERROR SAAT PREDIKSI: " + err.message);
+          alert(
+            "Terjadi kesalahan saat prediksi. Lihat area debug di bawah form.",
+          );
         }
-
-        // Normalisasi Input (Standard Scaler)
-        const scaledInputs = inputs.map((val, i) => {
-          return (val - modelData.scaler_mean[i]) / modelData.scaler_std[i];
-        });
-
-        // Forward Pass Layer 1
-        let z1 = addVector(
-          dotProduct(modelData.W1, scaledInputs),
-          modelData.b1,
-        );
-        let a1 = relu(z1);
-
-        // Forward Pass Layer 2
-        let z2 = addVector(dotProduct(modelData.W2, a1), modelData.b2);
-        let a2 = relu(z2);
-
-        // Output Layer
-        let z3 = addVector(dotProduct(modelData.W3, a2), modelData.b3);
-        let probabilities = softmax(z3);
-
-        // Tentukan Kelas Tertinggi
-        const classes = [
-          "Low Strength (<30 MPa)",
-          "Medium Strength (30-50 MPa)",
-          "High Strength (>50 MPa)",
-        ];
-        const maxProb = Math.max(...probabilities);
-        const predictedIndex = probabilities.indexOf(maxProb);
-        const predictedClass = classes[predictedIndex];
-
-        // Tampilkan Hasil
-        const resultBox = document.getElementById("result");
-        const title = document.getElementById("prediction-title");
-        const detail = document.getElementById("prediction-detail");
-
-        resultBox.style.display = "block";
-        resultBox.className = "result-box"; // Reset class
-
-        if (predictedIndex === 0) resultBox.classList.add("result-low");
-        else if (predictedIndex === 1) resultBox.classList.add("result-medium");
-        else resultBox.classList.add("result-high");
-
-        title.innerText = predictedClass;
-        detail.innerText = `Tingkat Keyakinan: ${(maxProb * 100).toFixed(2)}%`;
       }
     </script>
   </body>
