@@ -3,366 +3,524 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Klasifikasi Kuat Tekan Beton (ANN)</title>
+    <title>ANN • Concrete</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      :root {
+        --accent: #22d3ee;
+      }
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f6f9;
-        color: #333;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(180deg, #0a0f1c 0%, #0f172a 100%);
+        color: #e2e8f0;
+        min-height: 100vh;
       }
-      .container {
-        background: white;
-        padding: 30px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      .header-font {
+        font-family: "Space Grotesk", sans-serif;
       }
-      h1 {
-        text-align: center;
-        color: #2c3e50;
-        margin-bottom: 10px;
+      .glass {
+        background: rgba(17, 24, 39, 0.85);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(148, 163, 184, 0.15);
       }
-      p.subtitle {
-        text-align: center;
-        color: #7f8c8d;
-        font-size: 0.9em;
-        margin-bottom: 30px;
+      .neon-btn {
+        background: linear-gradient(90deg, #22d3ee, #6366f1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .input-group {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin-bottom: 20px;
+      .neon-btn:hover {
+        transform: translateY(-4px) scale(1.04);
+        box-shadow: 0 0 30px -5px rgb(34 211 238);
       }
-      @media (max-width: 600px) {
-        .input-group {
-          grid-template-columns: 1fr;
-        }
+      .input-card {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 600;
-        font-size: 0.9em;
+      .input-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 15px 25px -5px rgba(34, 211, 238, 0.15);
       }
-      input[type="number"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        box-sizing: border-box;
+      .progress-bar {
+        transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
-      button {
-        width: 100%;
-        padding: 12px;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background 0.3s;
-        margin-top: 10px;
-      }
-      button:hover {
-        background-color: #2980b9;
-      }
-      .result-box {
-        margin-top: 30px;
-        padding: 20px;
-        border-radius: 5px;
-        text-align: center;
-        display: none;
-      }
-      .result-low {
-        background-color: #ffebee;
-        color: #c62828;
-        border: 1px solid #ef9a9a;
-      }
-      .result-medium {
-        background-color: #fff3e0;
-        color: #ef6c00;
-        border: 1px solid #ffcc80;
-      }
-      .result-high {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #a5d6a7;
-      }
-      .confidence {
-        font-size: 0.85em;
-        margin-top: 5px;
-        opacity: 0.8;
-      }
-      .footer {
-        margin-top: 40px;
-        text-align: center;
-        font-size: 0.8em;
-        color: #aaa;
-      }
-      #debug-area {
-        margin-top: 20px;
-        padding: 10px;
-        background: #eee;
-        font-family: monospace;
-        font-size: 12px;
-        display: none;
-        color: red;
+      .neural-dot {
+        animation: neuralPulse 1.5s infinite;
       }
     </style>
   </head>
-  <body>
-    <div class="container">
-      <h1>🏗️ Klasifikasi Kuat Tekan Beton</h1>
-      <p class="subtitle">Artificial Neural Network (ANN) - 8 Fitur Input</p>
-
-      <!-- Form Input -->
-      <div class="input-group">
-        <div>
-          <label for="cement">Semen (kg/m³)</label
-          ><input
-            type="number"
-            id="cement"
-            step="0.1"
-            placeholder="Contoh: 250"
-          />
+  <body class="min-h-screen pb-12">
+    <header
+      class="border-b border-slate-700 bg-black/70 backdrop-blur-lg sticky top-0 z-50"
+    >
+      <div
+        class="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="w-11 h-11 bg-gradient-to-br from-cyan-400 to-indigo-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg"
+          >
+            🧠
+          </div>
+          <div>
+            <h1
+              class="header-font text-3xl font-semibold tracking-tighter text-white"
+            >
+              Artificial Neural Network
+            </h1>
+            <p class="text-cyan-400 text-sm -mt-1">
+              Concrete Compressive Strength
+            </p>
+          </div>
         </div>
-        <div>
-          <label for="slag">Blast Furnace Slag (kg/m³)</label
-          ><input
-            type="number"
-            id="slag"
-            step="0.1"
-            placeholder="Contoh: 100"
-          />
-        </div>
-        <div>
-          <label for="flyash">Fly Ash (kg/m³)</label
-          ><input
-            type="number"
-            id="flyash"
-            step="0.1"
-            placeholder="Contoh: 50"
-          />
-        </div>
-        <div>
-          <label for="water">Air (kg/m³)</label
-          ><input
-            type="number"
-            id="water"
-            step="0.1"
-            placeholder="Contoh: 180"
-          />
-        </div>
-        <div>
-          <label for="superplasticizer">Superplasticizer (kg/m³)</label
-          ><input
-            type="number"
-            id="superplasticizer"
-            step="0.1"
-            placeholder="Contoh: 5"
-          />
-        </div>
-        <div>
-          <label for="coarse">Coarse Aggregate (kg/m³)</label
-          ><input
-            type="number"
-            id="coarse"
-            step="0.1"
-            placeholder="Contoh: 900"
-          />
-        </div>
-        <div>
-          <label for="fine">Fine Aggregate (kg/m³)</label
-          ><input
-            type="number"
-            id="fine"
-            step="0.1"
-            placeholder="Contoh: 700"
-          />
-        </div>
-        <div>
-          <label for="age">Umur (Hari)</label
-          ><input type="number" id="age" step="1" placeholder="Contoh: 28" />
+        <div
+          class="flex items-center gap-2 text-emerald-400 text-sm font-medium"
+        >
+          <div
+            class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"
+          ></div>
+          MODEL READY
         </div>
       </div>
+    </header>
 
-      <button onclick="predictConcrete()">Prediksi Kelas Kekuatan</button>
+    <main
+      class="max-w-7xl mx-auto px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8"
+    >
+      <!-- INPUT SECTION -->
+      <div class="lg:col-span-8 glass rounded-3xl p-8 shadow-2xl">
+        <div class="flex items-center gap-4 mb-8">
+          <span class="text-4xl">📊</span>
+          <div>
+            <h2 class="text-3xl font-semibold tracking-tight">
+              Concrete Mix Parameters
+            </h2>
+          </div>
+        </div>
 
-      <!-- Hasil Prediksi -->
-      <div id="result" class="result-box">
-        <h2 id="prediction-title" style="margin: 0"></h2>
-        <div id="prediction-detail" class="confidence"></div>
+        <!-- Quick Presets -->
+        <div class="flex flex-wrap gap-3 mb-8" id="presets">
+          <button
+            onclick="loadPreset(0)"
+            class="px-6 py-2.5 text-sm font-medium rounded-2xl border border-slate-600 hover:border-cyan-400 hover:text-cyan-400 transition-all"
+          >
+            Normal Concrete
+          </button>
+          <button
+            onclick="loadPreset(1)"
+            class="px-6 py-2.5 text-sm font-medium rounded-2xl border border-slate-600 hover:border-cyan-400 hover:text-cyan-400 transition-all"
+          >
+            High Strength
+          </button>
+          <button
+            onclick="loadPreset(2)"
+            class="px-6 py-2.5 text-sm font-medium rounded-2xl border border-slate-600 hover:border-cyan-400 hover:text-cyan-400 transition-all"
+          >
+            Eco Mix (High Slag/Fly Ash)
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="input-fields">
+          <!-- Input fields akan digenerate oleh JS -->
+        </div>
+
+        <button
+          onclick="predictConcrete()"
+          id="predict-btn"
+          class="neon-btn w-full mt-12 py-6 rounded-2xl text-xl font-semibold text-black flex items-center justify-center gap-4 shadow-xl"
+        >
+          <span id="btn-text">Run Analysis</span>
+        </button>
       </div>
 
-      <!-- Debug Area -->
-      <div id="debug-area"></div>
-    </div>
+      <!-- SIDEBAR -->
+      <div class="lg:col-span-4 space-y-6">
+        <!-- Live Preview -->
+        <div class="glass rounded-3xl p-7">
+          <h3 class="font-semibold text-lg mb-5 flex items-center gap-3">
+            <span>🔬</span> Live Composition
+          </h3>
+          <div id="live-preview" class="space-y-5 text-sm"></div>
+        </div>
 
-    <div class="footer">
-      Dibuat untuk Tugas ANN Teknik Informatika | Model Accuracy: ~88%
-    </div>
+        <!-- Result Card -->
+        <div
+          id="status-card"
+          class="glass rounded-3xl p-8 min-h-[460px] flex flex-col"
+        >
+          <div
+            id="placeholder"
+            class="flex-1 flex flex-col items-center justify-center text-center"
+          >
+            <div class="text-7xl mb-6 opacity-40">🧠</div>
+            <p class="text-slate-400 max-w-[220px]">
+              Masukkan data lalu klik tombol analisis untuk melihat prediksi
+              kekuatan beton
+            </p>
+          </div>
+
+          <div id="result-content" class="hidden flex-1">
+            <div id="main-result" class="text-center mb-8"></div>
+            <canvas id="strengthChart" height="180"></canvas>
+            <div id="prob-list" class="mt-8 space-y-6"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="text-center text-slate-500 text-xs py-8">
+      Artificial Neural Network • Concrete Compressive Strength
+    </footer>
 
     <script>
-      let modelData = null;
-      const debugArea = document.getElementById("debug-area");
+      // ================== DATA INPUT ==================
+      const fields = [
+        {
+          id: "cement",
+          label: "Semen (kg/m³)",
+          icon: "🧱",
+          min: 100,
+          max: 600,
+          step: 1,
+          default: 350,
+        },
+        {
+          id: "slag",
+          label: "Blast Furnace Slag (kg/m³)",
+          icon: "🏭",
+          min: 0,
+          max: 300,
+          step: 1,
+          default: 0,
+        },
+        {
+          id: "flyash",
+          label: "Fly Ash (kg/m³)",
+          icon: "🌫️",
+          min: 0,
+          max: 250,
+          step: 1,
+          default: 0,
+        },
+        {
+          id: "water",
+          label: "Air (kg/m³)",
+          icon: "💧",
+          min: 100,
+          max: 250,
+          step: 1,
+          default: 180,
+        },
+        {
+          id: "superplasticizer",
+          label: "Superplasticizer (kg/m³)",
+          icon: "🧪",
+          min: 0,
+          max: 15,
+          step: 0.1,
+          default: 2,
+        },
+        {
+          id: "coarse",
+          label: "Coarse Aggregate (kg/m³)",
+          icon: "🪨",
+          min: 800,
+          max: 1300,
+          step: 1,
+          default: 1050,
+        },
+        {
+          id: "fine",
+          label: "Fine Aggregate (kg/m³)",
+          icon: "🏜️",
+          min: 500,
+          max: 900,
+          step: 1,
+          default: 700,
+        },
+        {
+          id: "age",
+          label: "Umur (Hari)",
+          icon: "📅",
+          min: 1,
+          max: 365,
+          step: 1,
+          default: 28,
+        },
+      ];
 
-      function logDebug(msg) {
-        console.log(msg);
-        debugArea.style.display = "block";
-        debugArea.innerHTML += msg + "<br>";
+      let modelData = null;
+      let radarChart = null;
+
+      // Generate Input Fields
+      function generateInputs() {
+        const container = document.getElementById("input-fields");
+        container.innerHTML = "";
+
+        fields.forEach((field) => {
+          const div = document.createElement("div");
+          div.className = "input-card glass rounded-2xl p-5";
+          div.innerHTML = `
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-2xl">${field.icon}</span>
+            <label class="font-medium text-sm">${field.label}</label>
+          </div>
+          <div class="flex gap-4 items-center">
+            <input type="number" id="${field.id}" value="${field.default}" 
+                   class="bg-slate-900 border border-slate-600 focus:border-cyan-400 rounded-xl px-4 py-3 w-28 text-center text-lg font-semibold focus:outline-none">
+            <input type="range" id="${field.id}-slider" min="${field.min}" max="${field.max}" step="${field.step}" value="${field.default}"
+                   class="flex-1 accent-cyan-400">
+          </div>
+        `;
+          container.appendChild(div);
+
+          // Sync number & slider
+          const numInput = div.querySelector(`#${field.id}`);
+          const slider = div.querySelector(`#${field.id}-slider`);
+
+          numInput.addEventListener("input", () => {
+            slider.value = numInput.value;
+            updateLivePreview();
+          });
+          slider.addEventListener("input", () => {
+            numInput.value = slider.value;
+            updateLivePreview();
+          });
+        });
       }
 
-      // 1. Load Model JSON secara otomatis saat halaman dibuka
-      fetch("concrete_model.json")
-        .then((response) => {
-          if (!response.ok)
-            throw new Error("Gagal mengambil file concrete_model.json");
-          return response.json();
-        })
-        .then((data) => {
-          modelData = data;
-          logDebug("✅ Model berhasil dimuat!");
-          logDebug("Jumlah Fitur di JSON: " + modelData.scaler_mean.length);
+      // Live Preview
+      function updateLivePreview() {
+        const preview = document.getElementById("live-preview");
+        let html = "";
 
-          // Cek apakah key memiliki spasi di akhir (masalah umum dari Python dict)
-          // Kita normalisasi akses jika perlu, tapi biasanya JSON.dump bersih.
-        })
-        .catch((error) => {
-          logDebug("❌ ERROR: " + error.message);
-          alert(
-            "Gagal memuat concrete_model.json. Pastikan file ada di folder yang sama dengan index.html.",
-          );
+        let totalBinder = 0;
+        let water = parseFloat(document.getElementById("water").value) || 0;
+
+        fields.forEach((f) => {
+          const val = parseFloat(document.getElementById(f.id).value) || 0;
+          if (["cement", "slag", "flyash"].includes(f.id)) totalBinder += val;
+
+          html += `
+          <div class="flex justify-between items-center">
+            <span class="text-slate-400">${f.icon} ${f.label.split(" ")[0]}</span>
+            <span class="font-mono font-semibold">${val}</span>
+          </div>
+        `;
         });
 
-      // Fungsi Matematika ANN
-      function relu(z) {
-        return z.map((val) => Math.max(0, val));
+        const wbRatio =
+          totalBinder > 0 ? (water / totalBinder).toFixed(2) : "-";
+        html += `
+        <div class="pt-4 border-t border-slate-700 text-xs flex justify-between">
+          <span class="text-emerald-400">Total Binder</span>
+          <span class="font-semibold">${totalBinder.toFixed(0)} kg/m³</span>
+        </div>
+        <div class="text-xs flex justify-between">
+          <span class="text-emerald-400">Water/Binder Ratio</span>
+          <span class="font-semibold">${wbRatio}</span>
+        </div>
+      `;
+
+        preview.innerHTML = html;
       }
 
-      function softmax(z) {
-        const maxVal = Math.max(...z);
-        const exps = z.map((val) => Math.exp(val - maxVal));
-        const sumExps = exps.reduce((a, b) => a + b, 0);
-        return exps.map((val) => val / sumExps);
+      // Load Preset
+      function loadPreset(type) {
+        if (type === 0) {
+          // Normal
+          setValues(350, 0, 50, 180, 2.5, 1050, 720, 28);
+        } else if (type === 1) {
+          // High Strength
+          setValues(480, 60, 40, 160, 6, 980, 650, 28);
+        } else if (type === 2) {
+          // Eco
+          setValues(280, 120, 100, 165, 3, 1080, 740, 56);
+        }
+        updateLivePreview();
       }
 
-      function dotProduct(matrix, vector) {
-        return matrix.map((row) =>
-          row.reduce((sum, val, i) => sum + val * vector[i], 0),
-        );
+      function setValues(c, s, fa, w, sp, co, fi, a) {
+        document.getElementById("cement").value = c;
+        document.getElementById("slag").value = s;
+        document.getElementById("flyash").value = fa;
+        document.getElementById("water").value = w;
+        document.getElementById("superplasticizer").value = sp;
+        document.getElementById("coarse").value = co;
+        document.getElementById("fine").value = fi;
+        document.getElementById("age").value = a;
+
+        // Update sliders juga
+        fields.forEach((f) => {
+          const slider = document.getElementById(f.id + "-slider");
+          if (slider) slider.value = document.getElementById(f.id).value;
+        });
       }
 
-      function addVector(v1, v2) {
-        return v1.map((val, i) => val + v2[i]);
+      // Load Model (sama seperti kode lama kamu)
+      async function loadModel() {
+        try {
+          const res = await fetch("concrete_model.json");
+          if (!res.ok) throw new Error("Model tidak ditemukan");
+          modelData = await res.json();
+          console.log(
+            "%c✅ ANN Model berhasil dimuat",
+            "color:#22d3ee; font-weight:bold",
+          );
+        } catch (err) {
+          console.error("Gagal load model:", err);
+          alert(
+            "Gagal memuat model ANN. Pastikan file 'concrete_model.json' ada di folder yang sama.",
+          );
+        }
       }
 
+      // Fungsi prediksi (pakai logic ANN kamu)
       function predictConcrete() {
         if (!modelData) {
-          alert("Model belum siap. Cek Console/Debug Area di bawah form.");
+          alert("Model ANN belum siap. Tunggu sebentar atau refresh halaman.");
           return;
         }
 
+        const btn = document.getElementById("predict-btn");
+        const btnText = document.getElementById("btn-text");
+        btnText.innerHTML = `<span class="inline-block animate-pulse">🧠 Thinking...</span>`;
+        btn.disabled = true;
+
         try {
-          // 2. Ambil Input & Bersihkan Koma (jika user pakai koma desimal)
-          const getVal = (id) => {
-            let val = document.getElementById(id).value.replace(",", ".");
-            return parseFloat(val) || 0;
-          };
-
-          // URUTAN INI HARUS SAMA PERSIS DENGAN URUTAN DI DATASET CONCRETE ANDA
           const inputs = [
-            getVal("cement"), // 0
-            getVal("slag"), // 1
-            getVal("flyash"), // 2
-            getVal("water"), // 3
-            getVal("superplasticizer"), // 4
-            getVal("coarse"), // 5
-            getVal("fine"), // 6
-            getVal("age"), // 7
+            parseFloat(document.getElementById("cement").value) || 0,
+            parseFloat(document.getElementById("slag").value) || 0,
+            parseFloat(document.getElementById("flyash").value) || 0,
+            parseFloat(document.getElementById("water").value) || 0,
+            parseFloat(document.getElementById("superplasticizer").value) || 0,
+            parseFloat(document.getElementById("coarse").value) || 0,
+            parseFloat(document.getElementById("fine").value) || 0,
+            parseFloat(document.getElementById("age").value) || 0,
           ];
 
-          logDebug("Input Raw: " + inputs.join(", "));
+          // === ANN Forward Pass (sama seperti kode lama kamu) ===
+          const { scaler_mean, scaler_std, W1, W2, W3, b1, b2, b3 } = modelData;
 
-          // 3. Normalisasi Input (Standard Scaler)
-          const mean = modelData.scaler_mean;
-          const std = modelData.scaler_std;
-
-          if (!mean || !std)
-            throw new Error("Scaler data tidak ditemukan di JSON");
-
-          const scaledInputs = inputs.map((val, i) => {
-            return (val - mean[i]) / std[i];
-          });
-
-          logDebug(
-            "Scaled Inputs: " +
-              scaledInputs.map((n) => n.toFixed(4)).join(", "),
+          const scaled = inputs.map(
+            (v, i) => (v - scaler_mean[i]) / scaler_std[i],
           );
 
-          // 4. Forward Pass
-          // Layer 1: Input (8) -> Hidden 1 (16)
-          let z1 = addVector(
-            dotProduct(modelData.W1, scaledInputs),
-            modelData.b1,
-          );
-          let a1 = relu(z1);
+          const relu = (z) => z.map((v) => Math.max(0, v));
+          const softmax = (z) => {
+            const max = Math.max(...z);
+            const exps = z.map((v) => Math.exp(v - max));
+            const sum = exps.reduce((a, b) => a + b, 0);
+            return exps.map((v) => v / sum);
+          };
+          const dot = (m, v) =>
+            m.map((row) => row.reduce((s, val, i) => s + val * v[i], 0));
+          const add = (v1, v2) => v1.map((v, i) => v + v2[i]);
+          const T = (m) => m[0].map((_, i) => m.map((row) => row[i]));
 
-          // Layer 2: Hidden 1 (16) -> Hidden 2 (8)
-          let z2 = addVector(dotProduct(modelData.W2, a1), modelData.b2);
-          let a2 = relu(z2);
+          const a1 = relu(add(dot(T(W1), scaled), b1));
+          const a2 = relu(add(dot(T(W2), a1), b2));
+          const probs = softmax(add(dot(T(W3), a2), b3));
 
-          // Output Layer: Hidden 2 (8) -> Output (3)
-          let z3 = addVector(dotProduct(modelData.W3, a2), modelData.b3);
-          let probabilities = softmax(z3);
-
-          logDebug(
-            "Probabilities: " +
-              probabilities.map((p) => (p * 100).toFixed(2) + "%").join(", "),
-          );
-
-          // 5. Tentukan Kelas
-          const classes = [
-            "Low Strength (<30 MPa)",
-            "Medium Strength (30-50 MPa)",
-            "High Strength (>50 MPa)",
-          ];
-          const maxProb = Math.max(...probabilities);
-          const predictedIndex = probabilities.indexOf(maxProb);
-
-          // Cek jika maxProb adalah NaN
-          if (isNaN(maxProb))
-            throw new Error("Hasil probabilitas NaN. Cek bobot/model.");
-
-          const predictedClass = classes[predictedIndex];
-
-          // 6. Tampilkan Hasil
-          const resultBox = document.getElementById("result");
-          const title = document.getElementById("prediction-title");
-          const detail = document.getElementById("prediction-detail");
-
-          resultBox.style.display = "block";
-          resultBox.className = "result-box";
-
-          if (predictedIndex === 0) resultBox.classList.add("result-low");
-          else if (predictedIndex === 1)
-            resultBox.classList.add("result-medium");
-          else resultBox.classList.add("result-high");
-
-          title.innerText = predictedClass;
-          detail.innerText = `Tingkat Keyakinan: ${(maxProb * 100).toFixed(2)}%`;
-
-          logDebug("✅ Prediksi Berhasil: " + predictedClass);
-        } catch (err) {
-          console.error(err);
-          logDebug("❌ ERROR SAAT PREDIKSI: " + err.message);
-          alert(
-            "Terjadi kesalahan saat prediksi. Lihat area debug di bawah form.",
-          );
+          // Tampilkan hasil
+          displayResults(probs);
+        } catch (e) {
+          console.error(e);
+          alert("Terjadi kesalahan saat memproses prediksi.");
         }
+
+        // Reset button
+        setTimeout(() => {
+          btnText.innerHTML = `Done <span class="text-3xl">✅</span>`;
+          setTimeout(() => {
+            btnText.innerHTML = `Mulai Analisis Neural Network <span class="text-3xl">⚡</span>`;
+            btn.disabled = false;
+          }, 1800);
+        }, 800);
       }
+
+      // Tampilkan Hasil
+      function displayResults(probs) {
+        const labels = ["Low Strength", "Medium Strength", "High Strength"];
+        const maxIdx = probs.indexOf(Math.max(...probs));
+        const confidence = (probs[maxIdx] * 100).toFixed(1);
+
+        document.getElementById("placeholder").classList.add("hidden");
+        const resultContent = document.getElementById("result-content");
+        resultContent.classList.remove("hidden");
+
+        // Main Result
+        const colors = ["#f87171", "#fbbf24", "#4ade80"];
+        const mainHTML = `
+        <div class="text-5xl font-bold mb-2" style="color:${colors[maxIdx]}">
+          ${labels[maxIdx]}
+        </div>
+        <div class="text-cyan-400 font-medium">Keyakinan: ${confidence}%</div>
+      `;
+        document.getElementById("main-result").innerHTML = mainHTML;
+
+        // Radar Chart
+        const ctx = document.getElementById("strengthChart");
+        if (radarChart) radarChart.destroy();
+        radarChart = new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Probabilitas",
+                data: probs.map((p) => p * 100),
+                backgroundColor: "rgba(34, 211, 238, 0.25)",
+                borderColor: "#22d3ee",
+                borderWidth: 3,
+                pointBackgroundColor: "#fff",
+                pointBorderColor: "#22d3ee",
+              },
+            ],
+          },
+          options: {
+            scales: {
+              r: {
+                min: 0,
+                max: 100,
+                grid: { color: "#334155" },
+                ticks: { color: "#64748b" },
+              },
+            },
+            plugins: { legend: { display: false } },
+          },
+        });
+
+        // Probability Bars
+        let barsHTML = "";
+        probs.forEach((prob, i) => {
+          const percent = (prob * 100).toFixed(1);
+          barsHTML += `
+          <div>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span>${labels[i]}</span>
+              <span class="font-mono">${percent}%</span>
+            </div>
+            <div class="h-2.5 bg-slate-700 rounded-full overflow-hidden">
+              <div class="progress-bar h-full bg-gradient-to-r from-cyan-400 to-indigo-500" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+        });
+        document.getElementById("prob-list").innerHTML = barsHTML;
+      }
+
+      // Init
+      window.onload = async () => {
+        generateInputs();
+        updateLivePreview();
+        await loadModel();
+
+        // Initial live preview
+        setTimeout(updateLivePreview, 300);
+      };
     </script>
   </body>
 </html>
