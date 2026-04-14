@@ -1,129 +1,313 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Klasifikasi Kuat Tekan Beton (ANN)</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
-        p.subtitle { text-align: center; color: #7f8c8d; font-size: 0.9em; margin-bottom: 30px; }
-        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        @media (max-width: 600px) { .input-group { grid-template-columns: 1fr; } }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; }
-        input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
-        button:hover { background-color: #2980b9; }
-        .result-box { margin-top: 30px; padding: 20px; border-radius: 5px; text-align: center; display: none; }
-        .result-low { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-        .result-medium { background-color: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; }
-        .result-high { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-        .confidence { font-size: 0.85em; margin-top: 5px; opacity: 0.8; }
-        .footer { margin-top: 40px; text-align: center; font-size: 0.8em; color: #aaa; }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f6f9;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 10px;
+      }
+      p.subtitle {
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 0.9em;
+        margin-bottom: 30px;
+      }
+      .input-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 600px) {
+        .input-group {
+          grid-template-columns: 1fr;
+        }
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        font-size: 0.9em;
+      }
+      input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s;
+        margin-top: 10px;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      .result-box {
+        margin-top: 30px;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+        display: none;
+      }
+      .result-low {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+      }
+      .result-medium {
+        background-color: #fff3e0;
+        color: #ef6c00;
+        border: 1px solid #ffcc80;
+      }
+      .result-high {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+      }
+      .confidence {
+        font-size: 0.85em;
+        margin-top: 5px;
+        opacity: 0.8;
+      }
+      .footer {
+        margin-top: 40px;
+        text-align: center;
+        font-size: 0.8em;
+        color: #aaa;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🏗️ Klasifikasi Kuat Tekan Beton</h1>
+      <p class="subtitle">Artificial Neural Network (ANN) - 8 Fitur Input</p>
 
-<div class="container">
-    <h1>🏗️ Klasifikasi Kuat Tekan Beton</h1>
-    <p class="subtitle">Artificial Neural Network (ANN) - 8 Fitur Input</p>
+      <!-- Form Input -->
+      <div class="input-group">
+        <div>
+          <label for="cement">Semen (kg/m³)</label
+          ><input
+            type="number"
+            id="cement"
+            step="0.1"
+            placeholder="Contoh: 250"
+          />
+        </div>
+        <div>
+          <label for="slag">Blast Furnace Slag (kg/m³)</label
+          ><input
+            type="number"
+            id="slag"
+            step="0.1"
+            placeholder="Contoh: 100"
+          />
+        </div>
+        <div>
+          <label for="flyash">Fly Ash (kg/m³)</label
+          ><input
+            type="number"
+            id="flyash"
+            step="0.1"
+            placeholder="Contoh: 50"
+          />
+        </div>
+        <div>
+          <label for="water">Air (kg/m³)</label
+          ><input
+            type="number"
+            id="water"
+            step="0.1"
+            placeholder="Contoh: 180"
+          />
+        </div>
+        <div>
+          <label for="superplasticizer">Superplasticizer (kg/m³)</label
+          ><input
+            type="number"
+            id="superplasticizer"
+            step="0.1"
+            placeholder="Contoh: 5"
+          />
+        </div>
+        <div>
+          <label for="coarse">Coarse Aggregate (kg/m³)</label
+          ><input
+            type="number"
+            id="coarse"
+            step="0.1"
+            placeholder="Contoh: 900"
+          />
+        </div>
+        <div>
+          <label for="fine">Fine Aggregate (kg/m³)</label
+          ><input
+            type="number"
+            id="fine"
+            step="0.1"
+            placeholder="Contoh: 700"
+          />
+        </div>
+        <div>
+          <label for="age">Umur (Hari)</label
+          ><input type="number" id="age" step="1" placeholder="Contoh: 28" />
+        </div>
+      </div>
 
-    <!-- Form Input -->
-    <div class="input-group">
-        <div><label for="cement">Semen (kg/m³)</label><input type="number" id="cement" step="0.1" placeholder="Contoh: 250"></div>
-        <div><label for="slag">Blast Furnace Slag (kg/m³)</label><input type="number" id="slag" step="0.1" placeholder="Contoh: 100"></div>
-        <div><label for="flyash">Fly Ash (kg/m³)</label><input type="number" id="flyash" step="0.1" placeholder="Contoh: 50"></div>
-        <div><label for="water">Air (kg/m³)</label><input type="number" id="water" step="0.1" placeholder="Contoh: 180"></div>
-        <div><label for="superplasticizer">Superplasticizer (kg/m³)</label><input type="number" id="superplasticizer" step="0.1" placeholder="Contoh: 5"></div>
-        <div><label for="coarse">Coarse Aggregate (kg/m³)</label><input type="number" id="coarse" step="0.1" placeholder="Contoh: 900"></div>
-        <div><label for="fine">Fine Aggregate (kg/m³)</label><input type="number" id="fine" step="0.1" placeholder="Contoh: 700"></div>
-        <div><label for="age">Umur (Hari)</label><input type="number" id="age" step="1" placeholder="Contoh: 28"></div>
-    </div>
+      <button onclick="predictConcrete()">Prediksi Kelas Kekuatan</button>
 
-    <button onclick="predictConcrete()">Prediksi Kelas Kekuatan</button>
-
-    <!-- Hasil Prediksi -->
-    <div id="result" class="result-box">
-        <h2 id="prediction-title" style="margin:0;"></h2>
+      <!-- Hasil Prediksi -->
+      <div id="result" class="result-box">
+        <h2 id="prediction-title" style="margin: 0"></h2>
         <div id="prediction-detail" class="confidence"></div>
+      </div>
     </div>
-</div>
 
-<div class="footer">Dibuat untuk Tugas ANN Teknik Informatika | Model Accuracy: ~88%</div>
+    <div class="footer">
+      Dibuat untuk Tugas ANN Teknik Informatika | Model Accuracy: ~88%
+    </div>
 
-<script>
-    let modelData = null;
+    <script>
+      let modelData = null;
 
-    // 1. Load Model JSON secara otomatis saat halaman dibuka
-    fetch('concrete_model.json')
-        .then(response => response.json())
-        .then(data => {
-            modelData = data;
-            console.log("Model berhasil dimuat:", modelData.architecture);
+      // 1. Load Model JSON secara otomatis saat halaman dibuka
+      fetch("concrete_model.json")
+        .then((response) => response.json())
+        .then((data) => {
+          modelData = data;
+          console.log("Model berhasil dimuat:", modelData.architecture);
         })
-        .catch(error => console.error("Gagal memuat model:", error));
+        .catch((error) => console.error("Gagal memuat model:", error));
 
-    // Fungsi Matematika ANN
-    function relu(z) { return z.map(val => Math.max(0, val)); }
-    function softmax(z) {
+      // Fungsi Matematika ANN
+      function relu(z) {
+        return z.map((val) => Math.max(0, val));
+      }
+      function softmax(z) {
         const maxVal = Math.max(...z);
-        const exps = z.map(val => Math.exp(val - maxVal));
+        const exps = z.map((val) => Math.exp(val - maxVal));
         const sumExps = exps.reduce((a, b) => a + b, 0);
-        return exps.map(val => val / sumExps);
-    }
-    function dotProduct(matrix, vector) {
-        return matrix.map(row => row.reduce((sum, val, i) => sum + val * vector[i], 0));
-    }
-    function addVector(v1, v2) { return v1.map((val, i) => val + v2[i]); }
+        return exps.map((val) => val / sumExps);
+      }
+      function dotProduct(matrix, vector) {
+        return matrix.map((row) =>
+          row.reduce((sum, val, i) => sum + val * vector[i], 0),
+        );
+      }
+      function addVector(v1, v2) {
+        return v1.map((val, i) => val + v2[i]);
+      }
 
-    function predictConcrete() {
-        if (!modelData) { alert("Model belum siap, tunggu sebentar..."); return; }
+      function predictConcrete() {
+        if (!modelData) {
+          alert("Model belum siap, tunggu sebentar...");
+          return;
+        }
 
-        // 2. Ambil Input
+        // Ambil nilai dari input, ganti koma dengan titik, lalu konversi ke float
         const inputs = [
-            parseFloat(document.getElementById('cement').value) || 0,
-            parseFloat(document.getElementById('slag').value) || 0,
-            parseFloat(document.getElementById('flyash').value) || 0,
-            parseFloat(document.getElementById('water').value) || 0,
-            parseFloat(document.getElementById('superplasticizer').value) || 0,
-            parseFloat(document.getElementById('coarse').value) || 0,
-            parseFloat(document.getElementById('fine').value) || 0,
-            parseFloat(document.getElementById('age').value) || 0
+          parseFloat(
+            document.getElementById("cement").value.replace(",", "."),
+          ) || 0,
+          parseFloat(document.getElementById("slag").value.replace(",", ".")) ||
+            0,
+          parseFloat(
+            document.getElementById("flyash").value.replace(",", "."),
+          ) || 0,
+          parseFloat(
+            document.getElementById("water").value.replace(",", "."),
+          ) || 0,
+          parseFloat(
+            document.getElementById("superplasticizer").value.replace(",", "."),
+          ) || 0,
+          parseFloat(
+            document.getElementById("coarse").value.replace(",", "."),
+          ) || 0,
+          parseFloat(document.getElementById("fine").value.replace(",", ".")) ||
+            0,
+          parseFloat(document.getElementById("age").value.replace(",", ".")) ||
+            0,
         ];
 
-        // 3. Normalisasi (Standard Scaler)
+        // Cek apakah ada NaN setelah konversi
+        if (inputs.some(isNaN)) {
+          alert(
+            "Mohon pastikan semua input berisi angka yang valid (gunakan titik '.' untuk desimal).",
+          );
+          return;
+        }
+
+        // Normalisasi Input (Standard Scaler)
         const scaledInputs = inputs.map((val, i) => {
-            return (val - modelData.scaler_mean[i]) / modelData.scaler_std[i];
+          return (val - modelData.scaler_mean[i]) / modelData.scaler_std[i];
         });
 
-        // 4. Forward Pass
-        let z1 = addVector(dotProduct(modelData.W1, scaledInputs), modelData.b1);
+        // Forward Pass Layer 1
+        let z1 = addVector(
+          dotProduct(modelData.W1, scaledInputs),
+          modelData.b1,
+        );
         let a1 = relu(z1);
+
+        // Forward Pass Layer 2
         let z2 = addVector(dotProduct(modelData.W2, a1), modelData.b2);
         let a2 = relu(z2);
+
+        // Output Layer
         let z3 = addVector(dotProduct(modelData.W3, a2), modelData.b3);
         let probabilities = softmax(z3);
 
-        // 5. Hasil
-        const classes = ["Low Strength (<30 MPa)", "Medium Strength (30-50 MPa)", "High Strength (>50 MPa)"];
+        // Tentukan Kelas Tertinggi
+        const classes = [
+          "Low Strength (<30 MPa)",
+          "Medium Strength (30-50 MPa)",
+          "High Strength (>50 MPa)",
+        ];
         const maxProb = Math.max(...probabilities);
         const predictedIndex = probabilities.indexOf(maxProb);
-        
-        const resultBox = document.getElementById('result');
-        const title = document.getElementById('prediction-title');
-        const detail = document.getElementById('prediction-detail');
+        const predictedClass = classes[predictedIndex];
 
-        resultBox.style.display = 'block';
-        resultBox.className = 'result-box';
-        if (predictedIndex === 0) resultBox.classList.add('result-low');
-        else if (predictedIndex === 1) resultBox.classList.add('result-medium');
-        else resultBox.classList.add('result-high');
+        // Tampilkan Hasil
+        const resultBox = document.getElementById("result");
+        const title = document.getElementById("prediction-title");
+        const detail = document.getElementById("prediction-detail");
 
-        title.innerText = classes[predictedIndex];
+        resultBox.style.display = "block";
+        resultBox.className = "result-box"; // Reset class
+
+        if (predictedIndex === 0) resultBox.classList.add("result-low");
+        else if (predictedIndex === 1) resultBox.classList.add("result-medium");
+        else resultBox.classList.add("result-high");
+
+        title.innerText = predictedClass;
         detail.innerText = `Tingkat Keyakinan: ${(maxProb * 100).toFixed(2)}%`;
-    }
-</script>
-
-</body>
+      }
+    </script>
+  </body>
 </html>
