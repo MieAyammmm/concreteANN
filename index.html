@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ANN • Concrete</title>
+    <title>ANN • Concrete Strength Predictor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link
@@ -46,9 +46,6 @@
       .progress-bar {
         transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
-      .neural-dot {
-        animation: neuralPulse 1.5s infinite;
-      }
     </style>
   </head>
   <body class="min-h-screen pb-12">
@@ -68,11 +65,9 @@
             <h1
               class="header-font text-3xl font-semibold tracking-tighter text-white"
             >
-              Artificial Neural Network
+              Prediksi Kekuatan Beton
             </h1>
-            <p class="text-cyan-400 text-sm -mt-1">
-              Concrete Compressive Strength
-            </p>
+            <p class="text-cyan-400 text-sm -mt-1">Artificial Neural Network</p>
           </div>
         </div>
         <div
@@ -81,7 +76,7 @@
           <div
             class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"
           ></div>
-          MODEL READY
+          <span id="model-status">MODEL READY</span>
         </div>
       </div>
     </header>
@@ -95,8 +90,9 @@
           <span class="text-4xl">📊</span>
           <div>
             <h2 class="text-3xl font-semibold tracking-tight">
-              Concrete Mix Parameters
+              Parameter Campuran Beton
             </h2>
+            <p class="text-slate-400 text-sm mt-1" id="arch-info"></p>
           </div>
         </div>
 
@@ -106,19 +102,19 @@
             onclick="loadPreset(0)"
             class="px-6 py-2.5 text-sm font-medium rounded-2xl border border-slate-600 hover:border-cyan-400 hover:text-cyan-400 transition-all"
           >
-            Normal Concrete
+            Beton Normal
           </button>
           <button
             onclick="loadPreset(1)"
             class="px-6 py-2.5 text-sm font-medium rounded-2xl border border-slate-600 hover:border-cyan-400 hover:text-cyan-400 transition-all"
           >
-            High Strength
+            Kekuatan Tinggi
           </button>
           <button
             onclick="loadPreset(2)"
             class="px-6 py-2.5 text-sm font-medium rounded-2xl border border-slate-600 hover:border-cyan-400 hover:text-cyan-400 transition-all"
           >
-            Eco Mix (High Slag/Fly Ash)
+            Ramah Lingkungan
           </button>
         </div>
 
@@ -131,7 +127,7 @@
           id="predict-btn"
           class="neon-btn w-full mt-12 py-6 rounded-2xl text-xl font-semibold text-black flex items-center justify-center gap-4 shadow-xl"
         >
-          <span id="btn-text">Run Analysis</span>
+          <span id="btn-text">🚀 Run Neural Network Analysis</span>
         </button>
       </div>
 
@@ -171,7 +167,7 @@
     </main>
 
     <footer class="text-center text-slate-500 text-xs py-8">
-      Artificial Neural Network • Concrete Compressive Strength
+      Artificial Neural Network • Dynamic Architecture Support
     </footer>
 
     <script>
@@ -188,7 +184,7 @@
         },
         {
           id: "slag",
-          label: "Blast Furnace Slag (kg/m³)",
+          label: "Terak Tanur (kg/m³)",
           icon: "🏭",
           min: 0,
           max: 300,
@@ -197,7 +193,7 @@
         },
         {
           id: "flyash",
-          label: "Fly Ash (kg/m³)",
+          label: "Abu Batu Bara (kg/m³)",
           icon: "🌫️",
           min: 0,
           max: 250,
@@ -215,7 +211,7 @@
         },
         {
           id: "superplasticizer",
-          label: "Superplasticizer (kg/m³)",
+          label: "Pengurang Kadar Air (kg/m³)",
           icon: "🧪",
           min: 0,
           max: 15,
@@ -224,7 +220,7 @@
         },
         {
           id: "coarse",
-          label: "Coarse Aggregate (kg/m³)",
+          label: "Batu Koral (kg/m³)",
           icon: "🪨",
           min: 800,
           max: 1300,
@@ -233,7 +229,7 @@
         },
         {
           id: "fine",
-          label: "Fine Aggregate (kg/m³)",
+          label: "Pasir (kg/m³)",
           icon: "🏜️",
           min: 500,
           max: 900,
@@ -253,6 +249,133 @@
 
       let modelData = null;
       let radarChart = null;
+
+      // ================== FUNGSI MATRIKS ==================
+      // Transpose matriks
+      function transpose(matrix) {
+        return matrix[0].map((_, colIndex) =>
+          matrix.map((row) => row[colIndex]),
+        );
+      }
+
+      // Perkalian matriks dengan vektor
+      function matrixVectorMultiply(matrix, vector) {
+        return matrix.map((row) =>
+          row.reduce((sum, val, i) => sum + val * vector[i], 0),
+        );
+      }
+
+      // Penjumlahan vektor
+      function vectorAdd(v1, v2) {
+        return v1.map((val, i) => val + v2[i]);
+      }
+
+      // ReLU activation
+      function relu(vector) {
+        return vector.map((v) => Math.max(0, v));
+      }
+
+      // Softmax activation
+      function softmax(vector) {
+        const max = Math.max(...vector);
+        const exps = vector.map((v) => Math.exp(v - max));
+        const sum = exps.reduce((a, b) => a + b, 0);
+        return exps.map((v) => v / sum);
+      }
+
+      // ================== FORWARD PASS DINAMIS ==================
+      // Fungsi ini bisa membaca arsitektur APAPUN dari weight matrix
+      function forwardPass(inputs, model) {
+        let current = inputs;
+
+        // Layer 1 (Hidden Layer 1)
+        let z1 = matrixVectorMultiply(transpose(model.W1), current);
+        z1 = vectorAdd(z1, model.b1);
+        let a1 = relu(z1);
+
+        // Layer 2 (Hidden Layer 2)
+        let z2 = matrixVectorMultiply(transpose(model.W2), a1);
+        z2 = vectorAdd(z2, model.b2);
+        let a2 = relu(z2);
+
+        // Layer 3 (Output Layer)
+        let z3 = matrixVectorMultiply(transpose(model.W3), a2);
+        z3 = vectorAdd(z3, model.b3);
+        let probs = softmax(z3);
+
+        return probs;
+      }
+
+      // ================== LOAD MODEL (Support 2 Format) ==================
+      async function loadModel() {
+        try {
+          // Coba load concrete_model_final.json dulu
+          let response = await fetch("concrete_model_final.json");
+          if (!response.ok) {
+            // Jika tidak ada, coba concrete_model.json
+            response = await fetch("concrete_model.json");
+          }
+          if (!response.ok) throw new Error("Model file not found");
+
+          const rawData = await response.json();
+
+          // Deteksi format dan konversi ke format standar
+          if (rawData.weights) {
+            // Format final (dengan wrapper)
+            console.log("📦 Detected format: Final model (with wrapper)");
+            modelData = {
+              scaler_mean: rawData.scaler_params.mean,
+              scaler_std: rawData.scaler_params.std,
+              W1: rawData.weights.W1,
+              b1: rawData.weights.b1,
+              W2: rawData.weights.W2,
+              b2: rawData.weights.b2,
+              W3: rawData.weights.W3,
+              b3: rawData.weights.b3,
+              feature_names: rawData.weights.feature_names,
+              class_labels: rawData.weights.class_labels,
+              accuracy: rawData.performance
+                ? parseFloat(rawData.performance.accuracy_test)
+                : null,
+              architecture: rawData.metadata
+                ? rawData.metadata.architecture
+                : "Unknown",
+            };
+          } else {
+            // Format standar (tanpa wrapper)
+            console.log("📦 Detected format: Standard model");
+            modelData = rawData;
+          }
+
+          // Tampilkan informasi arsitektur
+          const arch = getArchitecture(modelData);
+          document.getElementById("arch-info").innerHTML = `🧠 ${arch}`;
+          document.getElementById("model-status").innerHTML = `✅ ${arch}`;
+
+          console.log("✅ ANN Model loaded successfully!");
+          console.log(
+            `📐 Architecture: Input ${modelData.W1.length} → Hidden1 ${modelData.W1[0].length} → Hidden2 ${modelData.W2[0].length} → Output ${modelData.W3[0].length}`,
+          );
+        } catch (err) {
+          console.error("Failed to load model:", err);
+          document.getElementById("model-status").innerHTML =
+            "❌ MODEL NOT FOUND";
+          document.getElementById("arch-info").innerHTML =
+            "⚠️ Model file not found. Please ensure concrete_model_final.json or concrete_model.json is in the same folder.";
+          alert(
+            "Gagal memuat model ANN. Pastikan file 'concrete_model_final.json' atau 'concrete_model.json' ada di folder yang sama.",
+          );
+        }
+      }
+
+      // Fungsi untuk mendapatkan string arsitektur
+      function getArchitecture(model) {
+        const inputDim = model.W1.length;
+        const hidden1Dim = model.W1[0].length;
+        const hidden2Dim = model.W2[0].length;
+        const outputDim = model.W3[0].length;
+        return `${inputDim}→${hidden1Dim}→${hidden2Dim}→${outputDim}`;
+      }
 
       // Generate Input Fields
       function generateInputs() {
@@ -306,13 +429,13 @@
           html += `
           <div class="flex justify-between items-center">
             <span class="text-slate-400">${f.icon} ${f.label.split(" ")[0]}</span>
-            <span class="font-mono font-semibold">${val}</span>
+            <span class="font-mono font-semibold">${val.toFixed(1)}</span>
           </div>
         `;
         });
 
         const wbRatio =
-          totalBinder > 0 ? (water / totalBinder).toFixed(2) : "-";
+          totalBinder > 0 ? (water / totalBinder).toFixed(3) : "-";
         html += `
         <div class="pt-4 border-t border-slate-700 text-xs flex justify-between">
           <span class="text-emerald-400">Total Binder</span>
@@ -359,25 +482,7 @@
         });
       }
 
-      // Load Model (sama seperti kode lama kamu)
-      async function loadModel() {
-        try {
-          const res = await fetch("concrete_model_final.json");
-          if (!res.ok) throw new Error("Model tidak ditemukan");
-          modelData = await res.json();
-          console.log(
-            "%c✅ ANN Model berhasil dimuat",
-            "color:#22d3ee; font-weight:bold",
-          );
-        } catch (err) {
-          console.error("Gagal load model:", err);
-          alert(
-            "Gagal memuat model ANN. Pastikan file 'concrete_model.json' ada di folder yang sama.",
-          );
-        }
-      }
-
-      // Fungsi prediksi (pakai logic ANN kamu)
+      // ================== PREDIKSI UTAMA ==================
       function predictConcrete() {
         if (!modelData) {
           alert("Model ANN belum siap. Tunggu sebentar atau refresh halaman.");
@@ -386,10 +491,12 @@
 
         const btn = document.getElementById("predict-btn");
         const btnText = document.getElementById("btn-text");
-        btnText.innerHTML = `<span class="inline-block animate-pulse">🧠 Thinking...</span>`;
+        const originalText = btnText.innerHTML;
+        btnText.innerHTML = `<span class="inline-block animate-pulse">Proses...</span>`;
         btn.disabled = true;
 
         try {
+          // Ambil nilai input
           const inputs = [
             parseFloat(document.getElementById("cement").value) || 0,
             parseFloat(document.getElementById("slag").value) || 0,
@@ -401,49 +508,40 @@
             parseFloat(document.getElementById("age").value) || 0,
           ];
 
-          // === ANN Forward Pass (sama seperti kode lama kamu) ===
-          const { scaler_mean, scaler_std, W1, W2, W3, b1, b2, b3 } = modelData;
-
+          // Standardisasi
           const scaled = inputs.map(
-            (v, i) => (v - scaler_mean[i]) / scaler_std[i],
+            (v, i) => (v - modelData.scaler_mean[i]) / modelData.scaler_std[i],
           );
 
-          const relu = (z) => z.map((v) => Math.max(0, v));
-          const softmax = (z) => {
-            const max = Math.max(...z);
-            const exps = z.map((v) => Math.exp(v - max));
-            const sum = exps.reduce((a, b) => a + b, 0);
-            return exps.map((v) => v / sum);
-          };
-          const dot = (m, v) =>
-            m.map((row) => row.reduce((s, val, i) => s + val * v[i], 0));
-          const add = (v1, v2) => v1.map((v, i) => v + v2[i]);
-          const T = (m) => m[0].map((_, i) => m.map((row) => row[i]));
-
-          const a1 = relu(add(dot(T(W1), scaled), b1));
-          const a2 = relu(add(dot(T(W2), a1), b2));
-          const probs = softmax(add(dot(T(W3), a2), b3));
+          // Forward pass dinamis (bisa untuk arsitektur apapun)
+          const probs = forwardPass(scaled, modelData);
 
           // Tampilkan hasil
           displayResults(probs);
         } catch (e) {
-          console.error(e);
-          alert("Terjadi kesalahan saat memproses prediksi.");
+          console.error("Prediction error:", e);
+          alert(
+            "Terjadi kesalahan saat memproses prediksi. Periksa console untuk detail.",
+          );
         }
 
         // Reset button
         setTimeout(() => {
-          btnText.innerHTML = `Done <span class="text-3xl">✅</span>`;
+          btnText.innerHTML = `Selesai! ${originalText}`;
           setTimeout(() => {
-            btnText.innerHTML = `Mulai Analisis Neural Network <span class="text-3xl">⚡</span>`;
+            btnText.innerHTML = originalText;
             btn.disabled = false;
-          }, 1800);
-        }, 800);
+          }, 2000);
+        }, 500);
       }
 
       // Tampilkan Hasil
       function displayResults(probs) {
-        const labels = ["Low Strength", "Medium Strength", "High Strength"];
+        const labels = modelData.class_labels || [
+          "Low Strength",
+          "Medium Strength",
+          "High Strength",
+        ];
         const maxIdx = probs.indexOf(Math.max(...probs));
         const confidence = (probs[maxIdx] * 100).toFixed(1);
 
@@ -457,7 +555,8 @@
         <div class="text-5xl font-bold mb-2" style="color:${colors[maxIdx]}">
           ${labels[maxIdx]}
         </div>
-        <div class="text-cyan-400 font-medium">Keyakinan: ${confidence}%</div>
+        <div class="text-cyan-400 font-medium">Confidence: ${confidence}%</div>
+        ${modelData.accuracy ? `<div class="text-slate-400 text-xs mt-2">Model Accuracy: ${modelData.accuracy}%</div>` : ""}
       `;
         document.getElementById("main-result").innerHTML = mainHTML;
 
@@ -470,7 +569,7 @@
             labels: labels,
             datasets: [
               {
-                label: "Probabilitas",
+                label: "Probability (%)",
                 data: probs.map((p) => p * 100),
                 backgroundColor: "rgba(34, 211, 238, 0.25)",
                 borderColor: "#22d3ee",
@@ -512,14 +611,16 @@
         document.getElementById("prob-list").innerHTML = barsHTML;
       }
 
-      // Init
+      // ================== INITIALIZATION ==================
       window.onload = async () => {
         generateInputs();
         updateLivePreview();
         await loadModel();
+        updateLivePreview();
 
-        // Initial live preview
-        setTimeout(updateLivePreview, 300);
+        // Set default button text
+        const btnText = document.getElementById("btn-text");
+        btnText.innerHTML = `Jalankan Prediksi`;
       };
     </script>
   </body>
