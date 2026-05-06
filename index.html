@@ -362,7 +362,7 @@
       // Load Model (sama seperti kode lama kamu)
       async function loadModel() {
         try {
-          const res = await fetch("concrete_model.json");
+          const res = await fetch("concrete_model_final.json");
           if (!res.ok) throw new Error("Model tidak ditemukan");
           modelData = await res.json();
           console.log(
